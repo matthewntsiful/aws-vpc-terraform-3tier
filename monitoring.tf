@@ -13,9 +13,9 @@ resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   provider          = aws.Development
 
   tags = {
-    Name = "vpc-flow-logs"
+    Name        = "vpc-flow-logs"
     Environment = var.environment
-    CreatedBy = "Terraform"
+    CreatedBy   = "Terraform"
   }
 }
 
@@ -39,9 +39,9 @@ resource "aws_iam_role" "vpc_flow_logs_role" {
   })
 
   tags = {
-    Name = "vpc-flow-logs-role"
+    Name        = "vpc-flow-logs-role"
     Environment = var.environment
-    CreatedBy = "Terraform"
+    CreatedBy   = "Terraform"
   }
 }
 
@@ -79,8 +79,8 @@ resource "aws_flow_log" "vpc_flow_logs" {
   provider        = aws.Development
 
   tags = {
-    Name = "vpc-flow-logs"
+    Name        = "vpc-flow-logs"
     Environment = var.environment
-    CreatedBy = "Terraform"
+    CreatedBy   = "Terraform"
   }
 }

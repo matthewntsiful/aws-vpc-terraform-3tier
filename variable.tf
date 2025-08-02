@@ -53,13 +53,13 @@ variable "instance_tenancy" {
 variable "subnet_cidr" {
   description = "The CIDR blocks for VPC subnets"
   type        = list(string)
-  default     = [
-    "10.0.1.0/24",   # Public AZ1
-    "10.0.2.0/24",   # Public AZ2
-    "10.0.11.0/24",  # Private AZ1
-    "10.0.12.0/24",  # Private AZ2
-    "10.0.21.0/24",  # DB AZ1
-    "10.0.22.0/24"   # DB AZ2
+  default = [
+    "10.0.1.0/24",  # Public AZ1
+    "10.0.2.0/24",  # Public AZ2
+    "10.0.11.0/24", # Private AZ1
+    "10.0.12.0/24", # Private AZ2
+    "10.0.21.0/24", # DB AZ1
+    "10.0.22.0/24"  # DB AZ2
   ]
   validation {
     condition     = length(var.subnet_cidr) == 6

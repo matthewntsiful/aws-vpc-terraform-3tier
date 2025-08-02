@@ -30,9 +30,9 @@ resource "aws_security_group" "web_sg" {
 
   # Tags for identifying the web security group
   tags = {
-    Name = "web-security-group"
+    Name        = "web-security-group"
     Environment = var.environment
-    CreatedBy = "Terraform"
+    CreatedBy   = "Terraform"
   }
 }
 
@@ -60,9 +60,9 @@ resource "aws_security_group" "app_sg" {
 
   # Tags for identifying the app security group
   tags = {
-    Name = "app-security-group"
+    Name        = "app-security-group"
     Environment = var.environment
-    CreatedBy = "Terraform"
+    CreatedBy   = "Terraform"
   }
 }
 
@@ -90,8 +90,8 @@ resource "aws_security_group" "db_sg" {
 
   # Tags for identifying the db security group
   tags = {
-    Name = "db-security-group"
+    Name        = "db-security-group"
     Environment = var.environment
-    CreatedBy = "Terraform"
+    CreatedBy   = "Terraform"
   }
 }
