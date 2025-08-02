@@ -3,7 +3,7 @@
 # without requiring a NAT gateway or internet gateway.
 resource "aws_vpc_endpoint" "s3" {
   vpc_id       = aws_vpc.main.id
-  service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
+  service_name = "com.amazonaws.${data.aws_region.current.id}.s3"
   provider     = aws.Development
 
   # Tags are used to identify the resource and track its properties
@@ -14,15 +14,17 @@ resource "aws_vpc_endpoint" "s3" {
   }
 }
 
-# Get the current region
-data "aws_region" "current" {}
+# Use current region from provider
+data "aws_region" "current" {
+  provider = aws.Development
+}
 
 # Create VPC endpoint for DynamoDB
 # This endpoint allows instances in the VPC to access DynamoDB
 # without requiring a NAT gateway or internet gateway.
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id       = aws_vpc.main.id
-  service_name = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
+  service_name = "com.amazonaws.${data.aws_region.current.id}.dynamodb"
   provider     = aws.Development
 
   # Tags are used to identify the resource and track its properties
