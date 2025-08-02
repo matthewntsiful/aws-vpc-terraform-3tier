@@ -1,0 +1,69 @@
+# =============================================================================
+# TERRAFORM VARIABLES EXAMPLE
+# =============================================================================
+# Copy this file to terraform.tfvars and customize the values for your environment
+# cp terraform.tfvars.example terraform.tfvars
+
+# =============================================================================
+# CORE VPC CONFIGURATION
+# =============================================================================
+# vpc_cidr = "10.0.0.0/16"
+# vpc_name = "your-vpc-name"
+
+# Subnet CIDR blocks for 3-tier architecture
+# subnet_cidr = [
+#   "10.0.1.0/24",   # Public AZ1
+#   "10.0.2.0/24",   # Public AZ2
+#   "10.0.11.0/24",  # Private AZ1
+#   "10.0.12.0/24",  # Private AZ2
+#   "10.0.21.0/24",  # DB AZ1
+#   "10.0.22.0/24"   # DB AZ2
+# ]
+
+# =============================================================================
+# ENVIRONMENT & TAGGING
+# =============================================================================
+# environment = "Development"  # Options: Development, Staging, Production, Testing
+# project_name = "your-project-name"
+# owner = "Your-Team-Name"
+# cost_center = "Your-Cost-Center"
+
+# Additional custom tags
+# additional_tags = {
+#   Department = "Your-Department"
+#   Application = "Your-Application"
+# }
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+# Ports for security groups
+# web_ports = [80, 443]
+# app_port = 8080
+# db_port = 3306
+
+# CIDR blocks allowed to access public resources
+# allowed_cidr_blocks = ["0.0.0.0/0"]  # Restrict in production
+
+# =============================================================================
+# MONITORING & LOGGING
+# =============================================================================
+# enable_flow_logs = true
+# flow_logs_retention_days = 30  # Options: 1, 3, 5, 7, 14, 30, 60, 90, etc.
+# flow_logs_traffic_type = "ALL"  # Options: ACCEPT, REJECT, ALL
+
+# =============================================================================
+# VPC ENDPOINTS CONFIGURATION
+# =============================================================================
+# enable_s3_endpoint = true
+# enable_dynamodb_endpoint = true
+
+# =============================================================================
+# HIGH AVAILABILITY CONFIGURATION
+# =============================================================================
+# max_availability_zones = 2
+
+# =============================================================================
+# COST OPTIMIZATION
+# =============================================================================
+# single_nat_gateway = false  # Set to true for cost savings (not recommended for production)
