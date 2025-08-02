@@ -22,27 +22,11 @@ This infrastructure creates a complete AWS VPC with:
 - **Cost Optimization**: VPC endpoints to reduce NAT Gateway costs
 - **Scalability**: Designed for production workloads
 
-### Network Diagram
+### Network Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        VPC (10.0.0.0/16)                       │
-├─────────────────────────────────────────────────────────────────┤
-│  AZ-1a                           │  AZ-1b                       │
-├──────────────────────────────────┼──────────────────────────────┤
-│  Public Subnet (10.0.1.0/24)    │  Public Subnet (10.0.2.0/24)│
-│  ├─ Internet Gateway             │  ├─ Internet Gateway         │
-│  └─ NAT Gateway                  │  └─ NAT Gateway              │
-├──────────────────────────────────┼──────────────────────────────┤
-│  Private Subnet (10.0.11.0/24)  │  Private Subnet (10.0.12.0/24)│
-│  ├─ Application Servers          │  ├─ Application Servers      │
-│  └─ Route to NAT Gateway         │  └─ Route to NAT Gateway     │
-├──────────────────────────────────┼──────────────────────────────┤
-│  DB Subnet (10.0.21.0/24)       │  DB Subnet (10.0.22.0/24)   │
-│  ├─ Database Servers             │  ├─ Database Servers         │
-│  └─ No Internet Access          │  └─ No Internet Access      │
-└──────────────────────────────────┴──────────────────────────────┘
-```
+![VPC Architecture Diagram](images/vpc-architecture-diagram.png)
+
+*Professional AWS VPC architecture showing 3-tier design with high availability across 2 availability zones, including route tables, security groups, and VPC endpoints.*
 
 ## 📸 Environment Resource Maps
 
@@ -77,6 +61,11 @@ aws-vpc-terraform/
 │   ├── dev.tfvars            # Development environment
 │   ├── staging.tfvars        # Staging environment
 │   └── prod.tfvars           # Production environment
+├── images/                    # Architecture diagrams and screenshots
+│   ├── vpc-architecture-diagram.png  # Main architecture diagram
+│   ├── dev-resources.png     # Development environment resources
+│   ├── staging-resources.png # Staging environment resources
+│   └── prod-resources.png    # Production environment resources
 ├── deploy-all.sh              # Deploy all environments script
 ├── deploy-single.sh           # Deploy single environment script
 ├── plan-single.sh             # Plan single environment script
