@@ -170,3 +170,9 @@ docs/generated/
 
 # Terraform documentation
 terraform-docs/
+
+# Include images directory for screenshots
+!images/
+!images/*.png
+!images/*.jpg
+!images/*.jpeg

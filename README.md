@@ -44,6 +44,17 @@ This infrastructure creates a complete AWS VPC with:
 └──────────────────────────────────┴──────────────────────────────┘
 ```
 
+## 📸 Environment Resource Maps
+
+### Development Environment
+![Development VPC Resources](images/dev-resources.png)
+
+### Staging Environment
+![Staging VPC Resources](images/staging-resources.png)
+
+### Production Environment
+![Production VPC Resources](images/prod-resources.png)
+
 ## 📁 Project Structure
 
 ```
