@@ -1,5 +1,14 @@
 # Configure the Terraform providers
 terraform {
+  # Backend configuration for remote state storage
+  backend "s3" {
+    bucket         = "matthew-terraform-terraform-state-zxwoeb1w"
+    key            = "vpc-infrastructure/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "matthew-terraform-terraform-state-lock"
+    encrypt        = true
+  }
+
   required_providers {
     aws = {
       # Source URL for the AWS provider
