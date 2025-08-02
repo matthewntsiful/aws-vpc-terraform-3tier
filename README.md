@@ -58,10 +58,19 @@ aws-vpc-terraform/
 ├── provider.tf                # AWS provider configuration
 ├── output.tf                  # Output values
 ├── terraform.tfvars.example   # Template for variable customization
+├── backend-configs/           # Backend configurations for remote state
+│   ├── dev.hcl               # Development backend config
+│   ├── staging.hcl           # Staging backend config
+│   └── prod.hcl              # Production backend config
 ├── environments/              # Environment-specific configurations
 │   ├── dev.tfvars            # Development environment
 │   ├── staging.tfvars        # Staging environment
 │   └── prod.tfvars           # Production environment
+├── deploy-all.sh              # Deploy all environments script
+├── deploy-single.sh           # Deploy single environment script
+├── plan-single.sh             # Plan single environment script
+├── destroy-all.sh             # Destroy all environments script
+├── destroy-single.sh          # Destroy single environment script
 └── README.md                  # This file
 ```
 
@@ -81,33 +90,46 @@ aws-vpc-terraform/
    cd aws-vpc-terraform
    ```
 
-2. **Initialize Terraform**
+2. **Make scripts executable**
    ```bash
-   terraform init
+   chmod +x *.sh
    ```
 
-3. **Review the plan**
+3. **Deploy single environment**
    ```bash
-   terraform plan
+   ./deploy-single.sh dev
    ```
 
-4. **Deploy the infrastructure**
+4. **Deploy all environments**
    ```bash
-   terraform apply
+   ./deploy-all.sh
    ```
 
 ### Environment-Specific Deployment
 
-For different environments, use the provided tfvars files:
+#### Using Deployment Scripts (Recommended)
+```bash
+# Deploy specific environment
+./deploy-single.sh dev
+./deploy-single.sh staging
+./deploy-single.sh prod
 
+# Plan only (no apply)
+./plan-single.sh dev
+```
+
+#### Manual Deployment
 ```bash
 # Development
+terraform init -reconfigure -backend-config=backend-configs/dev.hcl
 terraform apply -var-file=environments/dev.tfvars
 
 # Staging
+terraform init -reconfigure -backend-config=backend-configs/staging.hcl
 terraform apply -var-file=environments/staging.tfvars
 
 # Production
+terraform init -reconfigure -backend-config=backend-configs/prod.hcl
 terraform apply -var-file=environments/prod.tfvars
 ```
 
@@ -131,12 +153,34 @@ terraform apply -var-file=environments/prod.tfvars
    terraform apply
    ```
 
+## 💾 Backend Configuration
+
+This project uses S3 backend for remote state storage with separate state files for each environment:
+
+- **Development**: `vpc-infrastructure/dev/terraform.tfstate`
+- **Staging**: `vpc-infrastructure/staging/terraform.tfstate`
+- **Production**: `vpc-infrastructure/prod/terraform.tfstate`
+
+### Backend Requirements
+- S3 bucket for state storage
+- DynamoDB table for state locking
+- Appropriate AWS permissions
+
+### Backend Configuration Files
+```bash
+backend-configs/
+├── dev.hcl      # Development backend
+├── staging.hcl  # Staging backend
+└── prod.hcl     # Production backend
+```
+
 ## 🔧 Configuration
 
 ### Core Variables
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
+| `aws_region` | AWS region for resources | `us-east-1` | No |
 | `vpc_cidr` | CIDR block for the VPC | `10.0.0.0/16` | No |
 | `environment` | Environment name | `Development` | No |
 | `project_name` | Project name for resource naming | `vpc-infrastructure` | No |
@@ -205,6 +249,45 @@ terraform output
 | `app_security_group_id` | ID of app security group |
 | `db_security_group_id` | ID of database security group |
 | `nat_gateway_ips` | Public IPs of NAT Gateways |
+
+## 🚀 Deployment Scripts
+
+The project includes automated deployment scripts for easier management:
+
+### Available Scripts
+
+| Script | Description | Usage |
+|--------|-------------|-------|
+| `deploy-all.sh` | Deploy all environments | `./deploy-all.sh` |
+| `deploy-single.sh` | Deploy single environment | `./deploy-single.sh <env>` |
+| `plan-single.sh` | Plan single environment | `./plan-single.sh <env>` |
+| `destroy-single.sh` | Destroy single environment | `./destroy-single.sh <env>` |
+| `destroy-all.sh` | Destroy all environments | `./destroy-all.sh` |
+
+### Script Features
+- ✅ **Safety confirmations** before destructive operations
+- ✅ **Environment validation** (dev, staging, prod only)
+- ✅ **Automatic backend switching** with proper state isolation
+- ✅ **Clear status messages** with progress indicators
+- ✅ **Error handling** with proper exit codes
+
+### Examples
+```bash
+# Make scripts executable
+chmod +x *.sh
+
+# Deploy development environment
+./deploy-single.sh dev
+
+# Plan staging changes
+./plan-single.sh staging
+
+# Deploy all environments
+./deploy-all.sh
+
+# Destroy development environment
+./destroy-single.sh dev
+```
 
 ## 🌍 Environment Configurations
 
@@ -296,17 +379,28 @@ terraform show
 
 ## 🧹 Cleanup
 
-To destroy the infrastructure:
-
+### Using Destroy Scripts (Recommended)
 ```bash
-# Destroy with confirmation
-terraform destroy
+# Destroy single environment
+./destroy-single.sh dev
+./destroy-single.sh staging
+./destroy-single.sh prod
 
+# Destroy all environments (use with extreme caution)
+./destroy-all.sh
+```
+
+### Manual Cleanup
+```bash
 # Destroy specific environment
+terraform init -reconfigure -backend-config=backend-configs/dev.hcl
 terraform destroy -var-file=environments/dev.tfvars
 
-# Auto-approve (use with caution)
-terraform destroy -auto-approve
+# Destroy all environments manually
+for env in dev staging prod; do
+  terraform init -reconfigure -backend-config=backend-configs/$env.hcl
+  terraform destroy -var-file=environments/$env.tfvars
+done
 ```
 
 ## 🤝 Contributing
