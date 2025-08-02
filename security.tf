@@ -1,8 +1,7 @@
 # Security Group for Web Layer
 resource "aws_security_group" "web_sg" {
-  name_prefix = "web-sg"
+  name_prefix = "${var.project_name}-web-sg"
   vpc_id      = aws_vpc.main.id
-  provider    = aws.Development
 
   # Allow HTTP traffic from anywhere
   ingress {
@@ -30,7 +29,7 @@ resource "aws_security_group" "web_sg" {
 
   # Tags for identifying the web security group
   tags = {
-    Name        = "web-security-group"
+    Name        = "${var.project_name}-web-security-group"
     Environment = var.environment
     CreatedBy   = "Terraform"
   }
@@ -38,9 +37,8 @@ resource "aws_security_group" "web_sg" {
 
 # Security Group for Application Layer
 resource "aws_security_group" "app_sg" {
-  name_prefix = "app-sg"
+  name_prefix = "${var.project_name}-app-sg"
   vpc_id      = aws_vpc.main.id
-  provider    = aws.Development
 
   # Allow traffic from the web security group on port 8080
   ingress {
@@ -60,7 +58,7 @@ resource "aws_security_group" "app_sg" {
 
   # Tags for identifying the app security group
   tags = {
-    Name        = "app-security-group"
+    Name        = "${var.project_name}-app-security-group"
     Environment = var.environment
     CreatedBy   = "Terraform"
   }
@@ -68,9 +66,8 @@ resource "aws_security_group" "app_sg" {
 
 # Security Group for Database Layer
 resource "aws_security_group" "db_sg" {
-  name_prefix = "db-sg"
+  name_prefix = "${var.project_name}-db-sg"
   vpc_id      = aws_vpc.main.id
-  provider    = aws.Development
 
   # Allow traffic from the app security group on port 3306
   ingress {
@@ -90,7 +87,7 @@ resource "aws_security_group" "db_sg" {
 
   # Tags for identifying the db security group
   tags = {
-    Name        = "db-security-group"
+    Name        = "${var.project_name}-db-security-group"
     Environment = var.environment
     CreatedBy   = "Terraform"
   }

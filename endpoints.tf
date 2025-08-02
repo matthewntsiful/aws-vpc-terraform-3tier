@@ -4,20 +4,17 @@
 resource "aws_vpc_endpoint" "s3" {
   vpc_id       = aws_vpc.main.id
   service_name = "com.amazonaws.${data.aws_region.current.id}.s3"
-  provider     = aws.Development
 
   # Tags are used to identify the resource and track its properties
   tags = {
-    Name        = "s3-vpc-endpoint"
+    Name        = "${var.project_name}-s3-vpc-endpoint"
     Environment = var.environment
     CreatedBy   = "Terraform"
   }
 }
 
 # Use current region from provider
-data "aws_region" "current" {
-  provider = aws.Development
-}
+data "aws_region" "current" {}
 
 # Create VPC endpoint for DynamoDB
 # This endpoint allows instances in the VPC to access DynamoDB
@@ -25,11 +22,10 @@ data "aws_region" "current" {
 resource "aws_vpc_endpoint" "dynamodb" {
   vpc_id       = aws_vpc.main.id
   service_name = "com.amazonaws.${data.aws_region.current.id}.dynamodb"
-  provider     = aws.Development
 
   # Tags are used to identify the resource and track its properties
   tags = {
-    Name        = "dynamodb-vpc-endpoint"
+    Name        = "${var.project_name}-dynamodb-vpc-endpoint"
     Environment = var.environment
     CreatedBy   = "Terraform"
   }
