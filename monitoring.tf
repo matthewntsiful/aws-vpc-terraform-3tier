@@ -1,3 +1,8 @@
+# Random ID for unique log group naming
+resource "random_id" "log_group_suffix" {
+  byte_length = 4
+}
+
 # VPC Flow Logs
 # =============
 #
@@ -8,7 +13,7 @@
 
 # CloudWatch Log Group for VPC Flow Logs
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
-  name              = "/aws/vpc/flowlogs"
+  name              = "/aws/vpc/flowlogs-${var.environment}-${random_id.log_group_suffix.hex}"
   retention_in_days = var.flow_logs_retention_days
   provider          = aws.Development
 

@@ -7,6 +7,10 @@ terraform {
       # Version constraint for the AWS provider
       version = "~> 6.0"
     }
+    random = {
+      source = "hashicorp/random"
+      version = "~> 3.1"
+    }
   }
 
   # Minimum version of Terraform required
