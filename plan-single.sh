@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Destroy single environment script
-# Usage: ./destroy-single.sh <environment>
-# Example: ./destroy-single.sh dev
+# Plan single environment script (no apply)
+# Usage: ./plan-single.sh <environment>
+# Example: ./plan-single.sh dev
 
 set -e
 
@@ -21,22 +21,15 @@ if [[ ! "$ENV" =~ ^(dev|staging|prod)$ ]]; then
     exit 1
 fi
 
-echo "🚨 WARNING: This will destroy the $ENV environment"
-echo "Are you sure you want to continue? (yes/no)"
-read -r confirmation
-
-if [ "$confirmation" != "yes" ]; then
-    echo "❌ Destruction cancelled"
-    exit 0
-fi
-
 echo ""
-echo "🔥 Destroying $ENV environment..."
+echo "📋 Planning $ENV environment..."
 echo "=================================="
 
 # Reconfigure backend for this environment
 terraform init -reconfigure -backend-config=backend-configs/$ENV.hcl
-terraform destroy -var-file=environments/$ENV.tfvars -auto-approve
+
+# Show plan only
+terraform plan -var-file=environments/$ENV.tfvars
 
 echo ""
-echo "✅ $ENV environment destroyed successfully!"
+echo "✅ Plan completed for $ENV environment!"

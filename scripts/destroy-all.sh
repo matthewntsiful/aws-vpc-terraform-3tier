@@ -21,7 +21,10 @@ for env in "${environments[@]}"; do
     echo "🔥 Destroying $env environment..."
     echo "=================================="
     
-    terraform init -backend-config=backend-configs/$env.hcl
+    # Reconfigure backend for this environment
+    terraform init -reconfigure -backend-config=backend-configs/$env.hcl
+    
+    # Destroy resources
     terraform destroy -var-file=environments/$env.tfvars -auto-approve
     
     echo "✅ $env environment destroyed"
