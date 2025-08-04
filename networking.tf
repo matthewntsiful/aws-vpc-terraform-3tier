@@ -237,6 +237,7 @@ resource "aws_route" "private_nat_route_1" {
 }
 
 resource "aws_eip" "nat_eip_2" {
+  count  = var.single_nat_gateway ? 0 : 1
   domain = "vpc"
 
   tags = {
@@ -247,7 +248,8 @@ resource "aws_eip" "nat_eip_2" {
 }
 
 resource "aws_nat_gateway" "nat_gw_2" {
-  allocation_id = aws_eip.nat_eip_2.id
+  count         = var.single_nat_gateway ? 0 : 1
+  allocation_id = aws_eip.nat_eip_2[0].id
   subnet_id     = aws_subnet.public_subnet_2.id
 
   tags = {
@@ -260,5 +262,5 @@ resource "aws_nat_gateway" "nat_gw_2" {
 resource "aws_route" "private_nat_route_2" {
   route_table_id         = aws_route_table.private_rtb2.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.nat_gw_2.id
+  nat_gateway_id         = var.single_nat_gateway ? aws_nat_gateway.nat_gw_1.id : aws_nat_gateway.nat_gw_2[0].id
 }

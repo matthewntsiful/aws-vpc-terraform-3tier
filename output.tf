@@ -52,6 +52,6 @@ output "db_security_group_id" {
 
 output "nat_gateway_ips" {
   description = "Elastic IP addresses of the NAT Gateways"
-  value       = [aws_eip.nat_eip_1.public_ip, aws_eip.nat_eip_2.public_ip]
+  value       = var.single_nat_gateway ? [aws_eip.nat_eip_1.public_ip] : [aws_eip.nat_eip_1.public_ip, aws_eip.nat_eip_2[0].public_ip]
 }
 
