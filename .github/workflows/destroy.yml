@@ -1,58 +1,23 @@
-name: Terraform Destroy
+name: Destroy
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to destroy'
         required: true
         type: choice
-        options:
-          - dev
-          - staging
-          - prod
-      confirm:
-        description: 'Type "DESTROY" to confirm'
-        required: true
-        type: string
-
-env:
-  TF_VERSION: "1.5.0"
-  AWS_REGION: us-east-1
+        options: [dev, prod]
 
 jobs:
   destroy:
-    name: Destroy ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'DESTROY'
-    environment: ${{ github.event.inputs.environment == 'prod' && 'production' || github.event.inputs.environment }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-      
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-      
-      - name: Terraform Init
-        run: |
-          terraform init -reconfigure -backend-config=backend-configs/${{ github.event.inputs.environment }}.hcl
-      
-      - name: Terraform Destroy
-        run: |
-          echo "⚠️ DESTROYING ${{ github.event.inputs.environment }} environment..."
-          terraform destroy -var-file=environments/${{ github.event.inputs.environment }}.tfvars -auto-approve
-      
-      - name: Destruction Summary
-        if: always()
-        run: |
-          echo "## Destruction Complete - ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "Environment ${{ github.event.inputs.environment }} has been destroyed." >> $GITHUB_STEP_SUMMARY
+          aws-region: us-east-1
+      - run: terraform init -backend-config=backend-configs/${{ github.event.inputs.environment }}.hcl
+      - run: terraform destroy -var-file=environments/${{ github.event.inputs.environment }}.tfvars -auto-approve
