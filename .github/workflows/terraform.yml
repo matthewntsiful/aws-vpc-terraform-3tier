@@ -2,10 +2,28 @@ name: Terraform CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, staging]
+    paths:
+      - '*.tf'
+      - 'environments/**'
+      - 'backend-configs/**'
   pull_request:
-    branches: [main]
+    branches: [main, develop, staging]
+    paths:
+      - '*.tf'
+      - 'environments/**'
+      - 'backend-configs/**'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
 
 env:
   TF_VERSION: "1.5.0"
@@ -28,7 +46,7 @@ jobs:
     if: github.event_name == 'pull_request'
     strategy:
       matrix:
-        environment: [dev, prod]
+        environment: [dev, staging, prod]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -39,8 +57,8 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - run: terraform init -backend-config=backend-configs/${{ matrix.environment }}.hcl
-      - run: terraform plan -var-file=environments/${{ matrix.environment }}.tfvars
+      - run: chmod +x ./plan-single.sh
+      - run: ./plan-single.sh ${{ matrix.environment }}
 
   deploy-dev:
     runs-on: ubuntu-latest
@@ -57,13 +75,35 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - run: terraform init -backend-config=backend-configs/dev.hcl
-      - run: terraform apply -var-file=environments/dev.tfvars -auto-approve
+      - run: chmod +x ./deploy-single.sh
+      - run: ./deploy-single.sh dev
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: |
+      (github.ref == 'refs/heads/staging' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - run: chmod +x ./deploy-single.sh
+      - run: ./deploy-single.sh staging
 
   deploy-prod:
     runs-on: ubuntu-latest
     needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -75,5 +115,23 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - run: terraform init -backend-config=backend-configs/prod.hcl
-      - run: terraform apply -var-file=environments/prod.tfvars -auto-approve
+      - run: chmod +x ./deploy-single.sh
+      - run: ./deploy-single.sh prod
+
+  deploy-manual:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev'
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - run: chmod +x ./deploy-single.sh
+      - run: ./deploy-single.sh dev
