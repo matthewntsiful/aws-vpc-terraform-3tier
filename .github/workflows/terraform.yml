@@ -1,0 +1,311 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '*.tf'
+      - 'environments/**'
+      - 'backend-configs/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '*.tf'
+      - 'environments/**'
+      - 'backend-configs/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  TF_VERSION: "1.5.0"
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: true
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    outputs:
+      terraform-fmt: ${{ steps.fmt.outcome }}
+      terraform-validate: ${{ steps.validate.outcome }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      
+      - name: Terraform Format Check
+        id: fmt
+        run: |
+          echo "Checking Terraform formatting..."
+          terraform fmt -check -recursive
+        continue-on-error: true
+      
+      - name: Terraform Init
+        id: init
+        run: |
+          echo "Initializing Terraform (validation only)..."
+          terraform init -backend=false
+      
+      - name: Terraform Validate
+        id: validate
+        run: |
+          echo "Validating Terraform configuration..."
+          terraform validate -no-color
+      
+      - name: Validation Summary
+        if: always()
+        run: |
+          echo "## Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Format Check: ${{ steps.fmt.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Validation: ${{ steps.validate.outcome }}" >> $GITHUB_STEP_SUMMARY
+
+  plan:
+    name: Plan (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, prod]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: false
+      
+      - name: Check Required Files
+        run: |
+          echo "Checking required configuration files..."
+          if [[ ! -f "backend-configs/${{ matrix.environment }}.hcl" ]]; then
+            echo "❌ Backend config missing: backend-configs/${{ matrix.environment }}.hcl"
+            exit 1
+          fi
+          if [[ ! -f "environments/${{ matrix.environment }}.tfvars" ]]; then
+            echo "❌ Environment config missing: environments/${{ matrix.environment }}.tfvars"
+            exit 1
+          fi
+          echo "✅ All required files found"
+      
+      - name: Terraform Init
+        id: init
+        run: |
+          echo "Initializing Terraform for ${{ matrix.environment }}..."
+          terraform init -reconfigure -backend-config=backend-configs/${{ matrix.environment }}.hcl
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          echo "Planning Terraform changes for ${{ matrix.environment }}..."
+          terraform plan -var-file=environments/${{ matrix.environment }}.tfvars -no-color -out=tfplan-${{ matrix.environment }}
+        continue-on-error: true
+      
+      - name: Plan Summary
+        if: always()
+        run: |
+          echo "## Plan Results - ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Init: ${{ steps.init.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Plan: ${{ steps.plan.outcome }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy-dev:
+    name: Deploy Development
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: |
+      (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev' && github.event.inputs.action == 'apply')
+    environment: development
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Pre-deployment Checks
+        run: |
+          echo "Running pre-deployment checks..."
+          if [[ ! -f "backend-configs/dev.hcl" ]] || [[ ! -f "environments/dev.tfvars" ]]; then
+            echo "❌ Required configuration files missing"
+            exit 1
+          fi
+          echo "✅ Configuration files verified"
+      
+      - name: Terraform Init
+        id: init
+        run: |
+          echo "Initializing Terraform for development..."
+          terraform init -reconfigure -backend-config=backend-configs/dev.hcl
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          echo "Creating deployment plan..."
+          terraform plan -var-file=environments/dev.tfvars -out=tfplan-dev
+      
+      - name: Terraform Apply
+        id: apply
+        run: |
+          echo "Applying Terraform changes to development..."
+          terraform apply tfplan-dev
+      
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "## Development Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- Init: ${{ steps.init.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Plan: ${{ steps.plan.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Apply: ${{ steps.apply.outcome }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Development deployment failed!"
+          echo "Check the logs above for details."
+
+  deploy-staging:
+    name: Deploy Staging
+    runs-on: ubuntu-latest
+    needs: [validate, deploy-dev]
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging' && github.event.inputs.action == 'apply') ||
+      (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Deploy Staging
+        run: |
+          echo "Deploying to staging environment..."
+          terraform init -reconfigure -backend-config=backend-configs/staging.hcl
+          terraform plan -var-file=environments/staging.tfvars -out=tfplan-staging
+          terraform apply tfplan-staging
+
+  deploy-prod:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: [validate, deploy-staging]
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply')
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Pre-production Validation
+        run: |
+          echo "Running pre-production validation..."
+          if [[ ! -f "backend-configs/prod.hcl" ]] || [[ ! -f "environments/prod.tfvars" ]]; then
+            echo "❌ Production configuration files missing"
+            exit 1
+          fi
+          echo "✅ Production configuration verified"
+      
+      - name: Terraform Init
+        id: init
+        run: |
+          echo "Initializing Terraform for production..."
+          terraform init -reconfigure -backend-config=backend-configs/prod.hcl
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          echo "Creating production deployment plan..."
+          terraform plan -var-file=environments/prod.tfvars -out=tfplan-prod
+      
+      - name: Terraform Apply
+        id: apply
+        run: |
+          echo "Applying Terraform changes to production..."
+          terraform apply tfplan-prod
+      
+      - name: Production Deployment Summary
+        if: always()
+        run: |
+          echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- Init: ${{ steps.init.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Plan: ${{ steps.plan.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Apply: ${{ steps.apply.outcome }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Notify on Success
+        if: success()
+        run: echo "✅ Production deployment completed successfully!"
+      
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Production deployment failed!"
+          echo "Immediate attention required - check logs and consider rollback."
