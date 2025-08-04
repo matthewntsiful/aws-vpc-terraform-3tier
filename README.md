@@ -186,6 +186,13 @@ backend-configs/
 | `project_name` | Project name for resource naming | `vpc-infrastructure` | No |
 | `owner` | Owner of the infrastructure | `DevOps-Team` | No |
 
+### NAT Gateway Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `enable_nat_gateway` | Enable NAT Gateway | `true` |
+| `single_nat_gateway` | Use single NAT for cost optimization | `false` |
+
 ### Security Variables
 
 | Variable | Description | Default |
@@ -211,7 +218,7 @@ For a complete list of variables, see [variable.tf](variable.tf).
 - **1 VPC** with DNS support and hostnames enabled
 - **6 Subnets** (2 public, 2 private, 2 database) across 2 AZs
 - **1 Internet Gateway** for public internet access
-- **2 NAT Gateways** for private subnet internet access (high availability)
+- **1-2 NAT Gateways** (configurable via `single_nat_gateway` variable)
 - **5 Route Tables** with appropriate routing rules
 
 ### Security
@@ -292,21 +299,21 @@ chmod +x *.sh
 ## 🌍 Environment Configurations
 
 ### Development (`environments/dev.tfvars`)
-- **Cost-optimized**: Single NAT Gateway
+- **Cost-optimized**: Single NAT Gateway (`single_nat_gateway = true`)
 - **Reduced monitoring**: 7-day log retention
-- **Relaxed security**: Open access for development
+- **Region**: us-east-1
 - **CIDR**: `10.10.0.0/16`
 
 ### Staging (`environments/staging.tfvars`)
-- **Production-like**: Dual NAT Gateways
+- **Production-like**: Dual NAT Gateways (`single_nat_gateway = false`)
 - **Moderate monitoring**: 14-day log retention
-- **Testing environment**: Similar to production
+- **Region**: af-south-1
 - **CIDR**: `10.20.0.0/16`
 
 ### Production (`environments/prod.tfvars`)
-- **High availability**: Dual NAT Gateways
+- **High availability**: Dual NAT Gateways (`single_nat_gateway = false`)
 - **Extended monitoring**: 90-day log retention
-- **Maximum security**: Restricted access
+- **Region**: us-west-2
 - **CIDR**: `10.0.0.0/16`
 
 ## 🔒 Security Best Practices
